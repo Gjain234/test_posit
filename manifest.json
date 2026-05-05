@@ -16,11 +16,17 @@
   "environment": {
     "python": {
       "requires": "~=3.11.0"
+    },
+    "environment_management": {
+      "python": false
     }
   },
   "files": {
     "requirements.txt": {
       "checksum": "db9b24b217378385b1ec90888e68f1a3"
+    },
+    ".gitignore": {
+      "checksum": "cee35959c7b054b6ba7ee03b570223e4"
     },
     ".python-version": {
       "checksum": "8505e44689cbef782596f70275334281"
