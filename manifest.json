@@ -18,7 +18,7 @@
       "requires": "~=3.11.0"
     },
     "environment_management": {
-      "python": true
+      "python": false
     }
   },
   "files": {
