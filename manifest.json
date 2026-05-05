@@ -2,8 +2,8 @@
   "version": 1,
   "locale": "C.UTF-8",
   "metadata": {
-    "appmode": "python-streamlit",
-    "entrypoint": "app"
+    "appmode": "python-api",
+    "entrypoint": "app:app"
   },
   "python": {
     "version": "3.11.9",
@@ -13,12 +13,20 @@
       "package_file": "requirements.txt"
     }
   },
+  "environment": {
+    "python": {
+      "requires": "~=3.11.0"
+    }
+  },
   "files": {
     "requirements.txt": {
-      "checksum": "a70cad61f47f93fa41f39cf781162ecb"
+      "checksum": "db9b24b217378385b1ec90888e68f1a3"
+    },
+    ".python-version": {
+      "checksum": "8505e44689cbef782596f70275334281"
     },
     "app.py": {
-      "checksum": "a9ab37befafb09a62c3ae4df0d48fe20"
+      "checksum": "6bc119e811f5e4974c058af9fe8d8cd0"
     }
   }
 }

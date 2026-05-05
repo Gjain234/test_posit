@@ -1,2 +1,4 @@
+--extra-index-url https://artifactory.worldbank.org/artifactory/api/pypi/itsdt-pypi-virtual/simple
+flask==3.1.2
+itsai-platform==0.1.2
 openai==2.34.0
-streamlit==1.57.0
