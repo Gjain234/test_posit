@@ -1,8 +1,6 @@
 import json
-
-from flask import Flask, render_template_string, request
-from itsai.platform.authentication import DesktopToken
-from openai import AzureOpenAI
+from html import escape
+from urllib.parse import parse_qs
 
 
 DEFAULT_PROMPT = "Explain the importance of financial inclusion."
@@ -19,16 +17,16 @@ PAGE_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>itsai Posit Credential Test</title>
     <style>
-        :root {
+        :root {{
             color-scheme: light;
             font-family: Arial, sans-serif;
-        }
-        body {
+        }}
+        body {{
             margin: 0;
             background: #f5f7fb;
             color: #162033;
-        }
-        main {
+        }}
+        main {{
             max-width: 880px;
             margin: 40px auto;
             padding: 32px;
@@ -36,45 +34,45 @@ PAGE_TEMPLATE = """
             border: 1px solid #d8dfeb;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(15, 30, 60, 0.08);
-        }
-        h1 {
+        }}
+        h1 {{
             margin-top: 0;
             font-size: 28px;
-        }
-        p {
+        }}
+        p {{
             line-height: 1.5;
-        }
-        form {
+        }}
+        form {{
             display: grid;
             gap: 16px;
             margin-top: 24px;
-        }
-        label {
+        }}
+        label {{
             display: grid;
             gap: 6px;
             font-weight: 600;
-        }
-        input, select, textarea, button {
+        }}
+        input, select, textarea, button {{
             font: inherit;
-        }
-        input, select, textarea {
+        }}
+        input, select, textarea {{
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #b8c4d9;
             border-radius: 8px;
             box-sizing: border-box;
             background: #ffffff;
-        }
-        textarea {
+        }}
+        textarea {{
             min-height: 120px;
             resize: vertical;
-        }
-        .grid {
+        }}
+        .grid {{
             display: grid;
             gap: 16px;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        }
-        button {
+        }}
+        button {{
             width: fit-content;
             padding: 12px 18px;
             border: 0;
@@ -83,15 +81,15 @@ PAGE_TEMPLATE = """
             color: #ffffff;
             cursor: pointer;
             font-weight: 600;
-        }
-        .card {
+        }}
+        .card {{
             margin-top: 28px;
             padding: 20px;
             border-radius: 10px;
             border: 1px solid #d8dfeb;
             background: #fbfcfe;
-        }
-        pre {
+        }}
+        pre {{
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-word;
@@ -99,7 +97,7 @@ PAGE_TEMPLATE = """
             color: #e2e8f0;
             padding: 16px;
             border-radius: 8px;
-        }
+        }}
     </style>
 </head>
 <body>
@@ -112,53 +110,42 @@ PAGE_TEMPLATE = """
                 <label>
                     itsai environment
                     <select name="environment">
-                        {% for option in ["DEV", "UAT", "PROD"] %}
-                        <option value="{{ option }}" {% if values.environment == option %}selected{% endif %}>{{ option }}</option>
-                        {% endfor %}
+                        {environment_options}
                     </select>
                 </label>
                 <label>
                     Model
-                    <input name="model" value="{{ values.model }}">
+                    <input name="model" value="{model}">
                 </label>
                 <label>
                     API version
-                    <input name="api_version" value="{{ values.api_version }}">
+                    <input name="api_version" value="{api_version}">
                 </label>
                 <label>
                     Max completion tokens
-                    <input name="max_completion_tokens" type="number" min="1" max="4000" value="{{ values.max_completion_tokens }}">
+                    <input name="max_completion_tokens" type="number" min="1" max="4000" value="{max_completion_tokens}">
                 </label>
             </div>
 
             <label>
                 Azure endpoint
-                <input name="endpoint" value="{{ values.endpoint }}">
+                <input name="endpoint" value="{endpoint}">
             </label>
 
             <label>
                 System prompt
-                <textarea name="system_prompt">{{ values.system_prompt }}</textarea>
+                <textarea name="system_prompt">{system_prompt}</textarea>
             </label>
 
             <label>
                 User prompt
-                <textarea name="user_prompt">{{ values.user_prompt }}</textarea>
+                <textarea name="user_prompt">{user_prompt}</textarea>
             </label>
 
             <button type="submit">Run credential test</button>
         </form>
 
-        {% if response_text is not none %}
-        <section class="card">
-            <h2>Response</h2>
-            <p>{{ response_text }}</p>
-        </section>
-        <section class="card">
-            <h2>Raw response</h2>
-            <pre>{{ response_json }}</pre>
-        </section>
-        {% endif %}
+        {result_sections}
     </main>
 </body>
 </html>
@@ -166,6 +153,9 @@ PAGE_TEMPLATE = """
 
 
 def create_client(environment: str, endpoint: str, api_version: str):
+    from itsai.platform.authentication import DesktopToken
+    from openai import AzureOpenAI
+
     token_class = DesktopToken()
     token_provider = lambda: token_class.token_provider(env=environment)
     return AzureOpenAI(
@@ -195,10 +185,6 @@ def run_completion(
         reasoning_effort="low",
     )
 
-
-app = Flask(__name__)
-
-
 def default_values():
     return {
         "environment": "DEV",
@@ -211,24 +197,49 @@ def default_values():
     }
 
 
-@app.route("/", methods=["GET", "POST"])
-def home():
+def parse_form(environ):
+    try:
+        content_length = int(environ.get("CONTENT_LENGTH") or "0")
+    except ValueError:
+        content_length = 0
+
+    raw_body = environ["wsgi.input"].read(content_length)
+    parsed = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+    return {key: values[0] for key, values in parsed.items()}
+
+
+def render_page(values, response_text=None, response_json=None):
+    environment_options = "".join(
+        f'<option value="{option}"{" selected" if values["environment"] == option else ""}>{option}</option>'
+        for option in ["DEV", "UAT", "PROD"]
+    )
+
+    result_sections = ""
+    if response_text is not None:
+        result_sections = (
+            "<section class=\"card\"><h2>Response</h2><p>{}</p></section>"
+            "<section class=\"card\"><h2>Raw response</h2><pre>{}</pre></section>"
+        ).format(escape(response_text), escape(response_json or ""))
+
+    return PAGE_TEMPLATE.format(
+        environment_options=environment_options,
+        endpoint=escape(values["endpoint"]),
+        api_version=escape(values["api_version"]),
+        model=escape(values["model"]),
+        system_prompt=escape(values["system_prompt"]),
+        user_prompt=escape(values["user_prompt"]),
+        max_completion_tokens=escape(values["max_completion_tokens"]),
+        result_sections=result_sections,
+    )
+
+
+def app(environ, start_response):
     values = default_values()
     response_text = None
     response_json = None
 
-    if request.method == "POST":
-        values.update(
-            {
-                "environment": request.form["environment"],
-                "endpoint": request.form["endpoint"],
-                "api_version": request.form["api_version"],
-                "model": request.form["model"],
-                "system_prompt": request.form["system_prompt"],
-                "user_prompt": request.form["user_prompt"],
-                "max_completion_tokens": request.form["max_completion_tokens"],
-            }
-        )
+    if environ.get("REQUEST_METHOD") == "POST":
+        values.update(parse_form(environ))
         response = run_completion(
             environment=values["environment"],
             endpoint=values["endpoint"],
@@ -241,13 +252,19 @@ def home():
         response_text = response.choices[0].message.content if response.choices else ""
         response_json = json.dumps(response.model_dump(), indent=2)
 
-    return render_template_string(
-        PAGE_TEMPLATE,
-        values=values,
-        response_text=response_text,
-        response_json=response_json,
+    body = render_page(values, response_text=response_text, response_json=response_json).encode("utf-8")
+    start_response(
+        "200 OK",
+        [
+            ("Content-Type", "text/html; charset=utf-8"),
+            ("Content-Length", str(len(body))),
+        ],
     )
+    return [body]
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    from wsgiref.simple_server import make_server
+
+    with make_server("0.0.0.0", 5000, app) as server:
+        server.serve_forever()

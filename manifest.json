@@ -23,7 +23,7 @@
   },
   "files": {
     "requirements.txt": {
-      "checksum": "db9b24b217378385b1ec90888e68f1a3"
+      "checksum": "a5d57dd66931f136a96eb5b672e77923"
     },
     ".gitignore": {
       "checksum": "cee35959c7b054b6ba7ee03b570223e4"
@@ -32,7 +32,7 @@
       "checksum": "8505e44689cbef782596f70275334281"
     },
     "app.py": {
-      "checksum": "6bc119e811f5e4974c058af9fe8d8cd0"
+      "checksum": "e57ac17cf590f743cc1fe3dd740649a8"
     }
   }
 }
